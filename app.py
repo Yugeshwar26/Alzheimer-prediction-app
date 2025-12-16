@@ -4,6 +4,8 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
+import gdown  # Helper to download from Drive
+import os
 
 # 1. Configure the page
 st.set_page_config(page_title="Alzheimer's Detector")
@@ -12,15 +14,25 @@ st.set_page_config(page_title="Alzheimer's Detector")
 st.title("Alzheimer's Disease Detection")
 st.write("Upload an MRI image to detect the stage of Alzheimer's Disease.")
 
-# 3. Load the Model
+# 3. Download and Load the Model
 @st.cache_resource
 def load_my_model():
-    return load_model('MAIN.h5')
+    model_path = 'MAIN.h5'
+    
+    # Check if model exists, if not download it
+    if not os.path.exists(model_path):
+        # REPLACE THIS WITH YOUR ACTUAL FILE ID FROM GOOGLE DRIVE
+        file_id = 'https://drive.google.com/file/d/1WooTARsLQohA4LlipdewUs97kYR98OdK/view?usp=drivesdk'
+        url = f'https://drive.google.com/uc?id={file_id}'
+        gdown.download(url, model_path, quiet=False)
+    
+    return load_model(model_path)
 
 try:
-    model = load_my_model()
+    with st.spinner('Loading Model... (This may take a minute if downloading)'):
+        model = load_my_model()
 except Exception as e:
-    st.error("Error loading model. Make sure 'MAIN.h5' is uploaded to the repository.")
+    st.error(f"Error loading model: {e}")
     st.stop()
 
 # 4. Define Class Names
@@ -45,9 +57,11 @@ if uploaded_file is not None:
         prediction = model.predict(img_array)
         index = np.argmax(prediction[0])
         confidence = np.max(prediction[0])
+        
         result = class_names[index]
         
         # 8. Show Result
         st.success(f"Prediction: **{result}**")
         st.info(f"Confidence: {confidence*100:.2f}%")
+        
       
